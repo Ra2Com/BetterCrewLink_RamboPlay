@@ -1,11 +1,13 @@
-import React, { Dispatch, SetStateAction, useEffect, useReducer, useState, useRef } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState, useRef } from 'react';
 import Voice from './Voice';
 import Menu from './Menu';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer, shell } from 'electron';
 import { AmongUsState } from '../common/AmongUsState';
-import Settings, { settingsReducer, lobbySettingsReducer, pushToTalkOptions } from './settings/Settings';
-import { GameStateContext, SettingsContext, LobbySettingsContext, PlayerColorContext } from './contexts';
-import { ThemeProvider } from '@material-ui/core/styles';
+import Settings from './settings/Settings';
+import SettingsStore, { setSetting, setLobbySetting } from './settings/SettingsStore';
+import { GameStateContext, SettingsContext, PlayerColorContext, HostSettingsContext } from './contexts';
+import { ThemeProvider, Theme, StyledEngineProvider } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import {
 	AutoUpdaterState,
 	IpcHandlerMessages,
@@ -14,18 +16,17 @@ import {
 	IpcSyncMessages,
 } from '../common/ipc-messages';
 import theme from './theme';
-import SettingsIcon from '@material-ui/icons/Settings';
-import RefreshSharpIcon from '@material-ui/icons/RefreshSharp';
-import CloseIcon from '@material-ui/icons/Close';
-import IconButton from '@material-ui/core/IconButton';
-import Dialog from '@material-ui/core/Dialog';
-import makeStyles from '@material-ui/core/styles/makeStyles';
-import LinearProgress from '@material-ui/core/LinearProgress';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogActions from '@material-ui/core/DialogActions';
-import Button from '@material-ui/core/Button';
+import SettingsIcon from '@mui/icons-material/Settings';
+import RefreshSharpIcon from '@mui/icons-material/RefreshSharp';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import LinearProgress from '@mui/material/LinearProgress';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import prettyBytes from 'pretty-bytes';
 import { IpcOverlayMessages } from '../common/ipc-messages';
 import ReactDOM from 'react-dom';
@@ -35,7 +36,15 @@ import 'typeface-varela/index.css';
 import { DEFAULT_PLAYERCOLORS } from '../main/avatarGenerator';
 import './language/i18n';
 import { withNamespaces } from 'react-i18next';
-import { GamePlatform } from '../common/GamePlatform';
+import { ISettings } from '../common/ISettings';
+
+
+declare module '@mui/styles/defaultTheme' {
+	// eslint-disable-next-line @typescript-eslint/no-empty-interface
+	interface DefaultTheme extends Theme { }
+}
+
+
 let appVersion = '';
 if (typeof window !== 'undefined' && window.location) {
 	const query = new URLSearchParams(window.location.search.substring(1));
@@ -57,7 +66,7 @@ const useStyles = makeStyles(() => ({
 		textAlign: 'center',
 		display: 'block',
 		height: theme.spacing(3),
-		lineHeight: `${theme.spacing(3)}px`,
+		lineHeight: theme.spacing(3),
 		color: theme.palette.primary.main,
 	},
 	button: {
@@ -128,63 +137,15 @@ export default function App({ t }): JSX.Element {
 	const playerColors = useRef<string[][]>(DEFAULT_PLAYERCOLORS);
 	const overlayInitCount = useRef<number>(0);
 
-	const settings = useReducer(settingsReducer, {
-		language: 'default',
-		alwaysOnTop: true,
-		microphone: 'Default',
-		speaker: 'Default',
-		pushToTalkMode: pushToTalkOptions.VOICE,
-		serverURL: 'https://bettercrewl.ink/',
-		pushToTalkShortcut: 'V',
-		deafenShortcut: 'RControl',
-		muteShortcut: 'RAlt',
-		impostorRadioShortcut: 'F',
-		hideCode: false,
-		natFix: false,
-		mobileHost: true,
-		overlayPosition: 'right',
-		compactOverlay: false,
-		enableOverlay: false,
-		meetingOverlay: false,
-		ghostVolume: 100,
-		masterVolume: 100,
-		microphoneGain: 100,
-		micSensitivity: 0.15,
-		microphoneGainEnabled: false,
-		micSensitivityEnabled: false,
-		vadEnabled: true,
-		hardware_acceleration: true,
-		echoCancellation: true,
-		enableSpatialAudio: true,
-		obsSecret: undefined,
-		obsOverlay: false,
-		noiseSuppression: true,
-		oldSampleDebug: false,
-		playerConfigMap: {},
-		localLobbySettings: {
-			maxDistance: 5.32,
-			haunting: false,
-			hearImpostorsInVents: false,
-			impostersHearImpostersInvent: false,
-			impostorRadioEnabled: false,
-			commsSabotage: false,
-			deadOnly: false,
-			meetingGhostOnly: false,
-			hearThroughCameras: false,
-			wallsBlockAudio: false,
-			visionHearing: false,
-			publicLobby_on: false,
-			publicLobby_title: '',
-			publicLobby_language: 'en',
-		},
-		launchPlatform: GamePlatform.STEAM,
-		customPlatforms: {},
-	});
-	const lobbySettings = useReducer(lobbySettingsReducer, settings[0].localLobbySettings);
+	const [settings, setSettings] = useState(SettingsStore.store);
+	const [hostLobbySettings, setHostLobbySettings] = useState(settings.localLobbySettings);
+	useEffect(() => {
+		SettingsStore.onDidAnyChange((newValue, _) => { setSettings(newValue as ISettings) });
+	}, []);
 
 	useEffect(() => {
 		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColors.current);
-		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, settings[0]);
+		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, SettingsStore.store);
 		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_GAME_STATE_CHANGED, gameState);
 	}, [overlayInitCount.current]);
 
@@ -249,10 +210,9 @@ export default function App({ t }): JSX.Element {
 	}, [gameState]);
 
 	useEffect(() => {
-		console.log(playerColors.current);
 		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColors.current);
-		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, settings[0]);
-	}, [settings[0]]);
+		ipcRenderer.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, SettingsStore.store);
+	}, [settings]);
 
 	let page;
 	switch (state) {
@@ -267,63 +227,83 @@ export default function App({ t }): JSX.Element {
 	return (
 		<PlayerColorContext.Provider value={playerColors.current}>
 			<GameStateContext.Provider value={gameState}>
-				<LobbySettingsContext.Provider value={lobbySettings}>
-					<SettingsContext.Provider value={settings}>
-						<ThemeProvider theme={theme}>
-							<TitleBar settingsOpen={settingsOpen} setSettingsOpen={setSettingsOpen} />
-							<Settings t={t} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-							<Dialog fullWidth open={updaterState.state !== 'unavailable' && diaOpen}>
-								{updaterState.state === 'downloaded' && updaterState.info && (
-									<DialogTitle>Update v{updaterState.info.version}</DialogTitle>
-								)}
-								{updaterState.state === 'downloading' && <DialogTitle>Updating...</DialogTitle>}
-								<DialogContent>
-									{updaterState.state === 'downloading' && updaterState.progress && (
-										<>
-											<LinearProgress variant={'determinate'} value={updaterState.progress.percent} />
-											<DialogContentText>
-												{prettyBytes(updaterState.progress.transferred)} / {prettyBytes(updaterState.progress.total)}
-											</DialogContentText>
-										</>
-									)}
-									{updaterState.state === 'downloaded' && (
-										<>
-											<LinearProgress variant={'indeterminate'} />
-											<DialogContentText>Restart now or later?</DialogContentText>
-										</>
+				<HostSettingsContext.Provider value={[hostLobbySettings, setHostLobbySettings]}>
+					<SettingsContext.Provider value={[settings, setSetting, setLobbySetting]}>
+						<StyledEngineProvider injectFirst>
+							<ThemeProvider theme={theme}>
+								<TitleBar settingsOpen={settingsOpen} setSettingsOpen={setSettingsOpen} />
+								<Settings t={t} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+								<Dialog fullWidth open={updaterState.state !== 'unavailable' && diaOpen}>
+									{updaterState.state === 'available' && updaterState.info && (
+										<DialogTitle>Update v{updaterState.info.version}</DialogTitle>
 									)}
 									{updaterState.state === 'error' && (
-										<DialogContentText color="error">{updaterState.error}</DialogContentText>
+										<DialogTitle>Updater Error</DialogTitle>
 									)}
-								</DialogContent>
-								{updaterState.state === 'error' && (
-									<DialogActions>
-										<Button href="https://github.com/OhMyGuus/BetterCrewLink/releases/latest">Download Manually</Button>
-									</DialogActions>
-								)}
-								{updaterState.state === 'downloaded' && (
-									<DialogActions>
-										<Button
-											onClick={() => {
-												ipcRenderer.send('update-app');
-											}}
-										>
-											Now
-										</Button>
-										<Button
-											onClick={() => {
-												setDiaOpen(false);
-											}}
-										>
-											Later
-										</Button>
-									</DialogActions>
-								)}
-							</Dialog>
-							{page}
-						</ThemeProvider>
+									{updaterState.state === 'downloading' && <DialogTitle>Updating...</DialogTitle>}
+									<DialogContent>
+										{updaterState.state === 'downloading' && updaterState.progress && (
+											<>
+												<LinearProgress variant={'determinate'} value={updaterState.progress.percent} />
+												<DialogContentText>
+													{prettyBytes(updaterState.progress.transferred)} / {prettyBytes(updaterState.progress.total)}
+												</DialogContentText>
+											</>
+										)}
+										{updaterState.state === 'available' && (
+											<>
+												<LinearProgress variant={'indeterminate'} />
+												<DialogContentText>Update now or later?</DialogContentText>
+											</>
+										)}
+										{updaterState.state === 'error' && (
+											<DialogContentText color="error">{String(updaterState.error)}</DialogContentText>
+										)}
+									</DialogContent>
+									{updaterState.state === 'error' && (
+										<DialogActions>
+											<Button
+												color="grey"
+												onClick={() => {
+													shell.openExternal("https://github.com/OhMyGuus/BetterCrewLink/releases/latest");
+												}}
+											>
+												Download Manually
+											</Button>
+											<Button
+												color="grey"
+												onClick={() => {
+													setDiaOpen(false);
+												}}
+											>
+												Skip
+											</Button>
+										</DialogActions>
+									)}
+									{updaterState.state === 'available' && (
+										<DialogActions>
+											<Button
+												onClick={() => {
+													ipcRenderer.send('update-app');
+												}}
+											>
+												Now
+											</Button>
+											<Button
+												onClick={() => {
+													setDiaOpen(false);
+												}}
+											>
+												Later
+											</Button>
+										</DialogActions>
+									)}
+								</Dialog>
+								{page}
+							</ThemeProvider>
+						</StyledEngineProvider>
 					</SettingsContext.Provider>
-				</LobbySettingsContext.Provider>
+				</HostSettingsContext.Provider>
 			</GameStateContext.Provider>
 		</PlayerColorContext.Provider>
 	);

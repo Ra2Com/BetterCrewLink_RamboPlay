@@ -19,7 +19,8 @@ export interface ISettings {
 	meetingOverlay: boolean;
 
 	localLobbySettings: ILobbySettings;
-	ghostVolume: number;
+	ghostVolumeAsImpostor: number;
+	crewVolumeAsGhost: number;
 	masterVolume: number;
 	microphoneGain: number;
 	microphoneGainEnabled: boolean;
@@ -33,6 +34,7 @@ export interface ISettings {
 	oldSampleDebug: boolean;
 
 	enableSpatialAudio: boolean;
+	oldSampleDebug: boolean;
 	playerConfigMap: playerConfigMap;
 	obsOverlay: boolean;
 	obsSecret: string | undefined;

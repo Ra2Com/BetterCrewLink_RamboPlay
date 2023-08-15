@@ -33,6 +33,14 @@
 				"ban_warning": "Килешмәгән текстлар BetterCrewLink-та блокировкага китерәчәк."
 			}
 		},
+		"customplatforms": {
+			"title": "Custom Platform",
+			"platform_title": "Исем",
+			"path": "EXE-га юл",
+			"uri": "URI сылтама",
+			"advanced": "Advanced",
+			"arguments": "Аргументлар"
+		},
 		"audio": {
 			"title": "Тавыш",
 			"microphone": "Микрофон",
@@ -45,6 +53,7 @@
 			"microphone_sens_warning": "Әгәр сизгерлекне бераз азрак куйсагыз, эшләмәскә мөмкин.",
 			"mastervolume": "Уртак тавыш",
 			"crewvolume": "Экипаж тавышы өрәкләр сыман",
+			"ghostvolumeasimpostor": "Ghost Volume as Impostor",
 			"test_speaker_start": "Тавышны тикшерү",
 			"test_speaker_stop": "Тавышны тикшерүне туктату"
 		},
@@ -87,10 +96,13 @@
 			"mobilehost": "Телефон өчен бүлмә хуҗасы",
 			"vad_enabled": "VAD кушылган",
 			"hardware_acceleration": "Аппарат тизләнеше",
+			"hardware_acceleration_warning": "This disables Hardware Acceleration (which can increase CPU usage)",
 			"vad_enabled_warning": "Сүнгән булса, кем сөйләгәнен күрмисез.",
 			"echocancellation": "Эхо бетерүче",
 			"noiseSuppression": "Тавыш бетерүче",
-			"spatial_audio": "Киңлектәге тавыш"
+			"spatial_audio": "Киңлектәге тавыш",
+			"oldsampledebug": "Samplerate Debug",
+			"oldsampledebug_warning": "This is a test function ONLY enabled when asked."
 		},
 		"streaming": {
 			"title": "Стрим көйләүләре",
@@ -110,6 +122,12 @@
 	"lobbybrowser": {
 		"header": "Ачык бүлмәләр",
 		"code": "Бүлмә коды",
+		"code_tooltips": {
+			"in_progress": "Game in Progress",
+			"full_lobby": "Lobby is Full",
+			"incompatible": "Incompatible Mods",
+			"and": "and"
+		},
 		"list": {
 			"title": "Исем",
 			"host": "Бүлмә хуҗасы",
@@ -124,22 +142,25 @@
 		"cancel": "Баш тарту",
 		"close": "Ябу",
 		"exit": "Үзгәрешләр куллану өчен көйләүләрне ябыгыз",
-		"public_lobby": "Ачык бүлмәләр"
+		"public_lobby": "Ачык бүлмәләр",
+		"delete": "Delete",
+		"file_select": "Файлны сайлау"
 	},
 	"game": {
 		"menu": "МЕНЮ",
-		"open": "Open Via",
-		"open_error": "Уенны кулдан ачу. (бу төймә Steam өчен генә)",
+		"open": "Open via",
+		"open_error": "Start the Among Us manually.",
 		"waiting": "Among Us көтүе",
 		"error": "ХАТА",
 		"error_admin": "Among Us-га тоташып булмады. Зинһар, BetterCrewLink-ны администратор исеменнән ачыгыз.",
-		"error_platform": "No Platform Detected",
+		"error_platform": "No platform detected",
 		"error_unsupport": "Сезнең Among Us версиясендә BetterCrewLink эшләми."
 	},
 	"platform": {
 		"steam": "Steam",
 		"epicgames": "Epic Games",
-		"microsoft": "Microsoft"
+		"microsoft": "Microsoft",
+		"custom": "Custom"
 	},
 	"translator_name": "Amirhan-Taipovjan-Greatest-I (Әлмәт Ак Арыслан) һәм morewaves (күбрәк дулкыннар plz)"
 }
